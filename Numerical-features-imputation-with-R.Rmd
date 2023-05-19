@@ -1,0 +1,178 @@
+---
+title: "Numerical features imputation"
+author: "Mohamed Moukhtar / KHALIL"
+date: "2023-05-19"
+output: html_document
+---
+---
+title: "DM3-IMPUTE EPCV"
+author: "Mohamed Moukhtar / KHALIL"
+date: "2023-04-22"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## Exploring the Data
+```{r}
+library(tidyverse)
+library(haven)
+library(VIM)
+library(mice)
+```
+```{r}
+df = read_sav("C:/Users/USER/Desktop/Base_EPCV2019-2020/Base_EPCV2019-2020/menage_2019.sav")
+head(df)
+```
+
+The dataframe contains variables with missing values.
+```{r}
+na_df = df %>%
+  summarise_all(~sum(is.na(.))) %>% # count NAs for each column
+  gather() %>% # convert to long format
+  arrange(value)
+#drop(na_df[,c('G11B1','G11B2')])
+na_df = as.data.frame(na_df)
+na_df
+
+```
+
+```{r}
+ggplot(na_df[3:10,], aes(x = key, y = value)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  xlab("Variable") +
+  ylab("Number of missing values") +
+  ggtitle("Number of missing values per variable")
+```
+
+We can see that the number of missing values for each variable is significant.
+
+Begin Imputation
+We have selected 5 quantitative variables: F2, F6, I12, I13, and SA6_C.
+
+## Impute F2 - How many rooms are there in your accommodation?
+Create a sub-dataframe without missing values of F2 and create new arbitrary missing values.
+
+```{r}
+df_notna <- df[!is.na(df$F2), ]
+set.seed(123)
+sample_indices <- sample(1:nrow(df_notna), round(0.4*nrow(df_notna)), replace=FALSE)
+F2_na = df_notna['F2']
+F2_na = data.frame(F2_na)
+F2_na[sample_indices,] = NA
+df_notna = data.frame(df_notna)
+df_notna['F2'] = F2_na
+```
+Imputation evaluation using mice:
+
+```{r}
+
+df_mice <- mice(df_notna[,c(34,35,36,37)], m=3,method = "pmm")
+
+```
+Evaluate:
+```{r}
+plot(density(df[!is.na(df$F2), ]$F2,bw=2), main = "Density Comparison of mice", col = "blue", lwd = 2, ylim = c(0, 1))
+
+# Add a density plot for F6_na
+lines(density(as.numeric(unlist(df_mice$imp$F2)),bw=2), col = "red", lwd = 2)
+```
+
+Imputation d'evaluation par : k-nn
+
+```{r}
+df_knn=kNN(df_notna,variable = 'F2',k=3)
+
+```
+Evaluate
+
+```{r}
+plot(density(df[!is.na(df$F2), ]$F2), main = "Density Comparison of K-nn", col = "blue", lwd = 2, ylim = c(0, 1))
+
+# Add a density plot for F6_na
+lines(density(df_knn$F2), col = "red", lwd = 2)
+
+```
+
+Imputation evaluation using hotdeck:
+
+```{r}
+df_hd = hotdeck(df_notna)
+
+```
+Evaluate:
+
+```{r}
+plot(density(df[!is.na(df$F2), ]$F2), main = "Density Comparison of hotdeck", col = "blue", lwd = 2, ylim = c(0, 1))
+
+# Add a density plot for F6_na
+lines(density(df_hd$F2), col = "red", lwd = 2)
+
+```
+
+## Imputing F6 - How many hectares of agricultural land does the household use that it does not own?
+Create a sub-dataframe without missing values of F6 and create new arbitrary missing values.
+
+```{r}
+df_notna <- df[!is.na(df$F6), ]
+set.seed(123)
+sample_indices <- sample(1:nrow(df_notna), round(0.4*nrow(df_notna)), replace=FALSE)
+F6_na = df_notna['F6']
+F6_na = data.frame(F6_na)
+F6_na[sample_indices,] = NA
+df_notna = data.frame(df_notna)
+df_notna['F6'] = F6_na
+```
+
+Imputation evaluation using mice:
+```{r}
+
+df_mice <- mice(df_notna[,c(39,40)], m=3,method = "pmm")
+
+```
+Evaluation:
+```{r}
+plot(density(df[!is.na(df$F6), ]$F6), main = "Density Comparison of mice", col = "blue", lwd = 2, ylim = c(0, 1))
+
+# Add a density plot for F6_na
+lines(density(as.numeric(unlist(df_mice$imp$F6))), col = "red", lwd = 2)
+```
+
+Imputation evaluation using k-nn:
+
+```{r}
+df_knn=kNN(df_notna,variable = 'F6',k=3)
+
+```
+Evaluation:
+
+```{r}
+plot(density(df[!is.na(df$F6), ]$F6), main = "Density Comparison of knn", col = "blue", lwd = 2, ylim = c(0, 1))
+
+# Add a density plot for F6_na
+lines(density(df_knn$F6), col = "red", lwd = 2)
+
+```
+
+Imputation evaluation using hotdeck:
+
+```{r}
+df_hd = hotdeck(df_notna)
+
+```
+Evaluation:
+
+```{r}
+plot(density(df[!is.na(df$F6), ]$F6), main = "Density Comparison of hotdeck", col = "blue", lwd = 2, ylim = c(0, 1))
+
+# Add a density plot for F6_na
+lines(density(df_hd$F6), col = "red", lwd = 2)
+
+```
+
+
