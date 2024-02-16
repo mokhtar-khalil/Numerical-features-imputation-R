@@ -1,0 +1,1 @@
+coor_i	coor_j	instant_depasse_seuil	nombre_de_bine_au_dessus_seuil
